@@ -1,2 +1,2 @@
 # huawei4g-as-sms_server
-Huawei 4G E5186s-22a router into an SMS Server
+Use a Huawei 4G E5186s-22a router as an SMS Server using Node
