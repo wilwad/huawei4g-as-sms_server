@@ -1,4 +1,9 @@
 function xml(){
+		/*
+		 * Router can return:
+		 * <error><code></code><message></message></error>
+		 * <response><field1></field1></response>
+		*/
 		this.getXMLtype = function(xml){
 			xml = xml.replace(/(\r\n|\n|\r)/gm,"");
 			return xml.indexOf('<error>') >-1 ? 'error' : xml.indexOf('<response>')>-1 ? 'response' : 'unknown';
