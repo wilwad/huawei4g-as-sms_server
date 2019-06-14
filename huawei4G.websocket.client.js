@@ -1,3 +1,4 @@
+/* interactive test client */
 let port = 8075;
 var WebSocket = require('ws');
 var ws = new WebSocket(`ws://localhost:${port}`);
