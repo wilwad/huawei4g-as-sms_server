@@ -9,6 +9,7 @@ var headers = {}
 
 var huawei4G = {
 	routes: { 
+				error:				 'api/device/usb-tethering-switch',
 				init:                '',
 				user_state_login:    'api/user/state-login',
 				user_logout:         'api/user/logout',
@@ -60,7 +61,7 @@ request(options, function (error, response, data) {
 		headers_['Cookie'] = cookie_;
 
 		var options = {
-			url: server + huawei4G.routes.wlan_basic_settings,
+			url: server + huawei4G.routes.user_state_login,
 			headers: headers_,
 			method: 'GET',
 			qs: { }
@@ -73,9 +74,8 @@ request(options, function (error, response, data) {
 
 				switch (type){
 					case 'error':
-						var ret   = getXmlValues( data, ['code', 'message'] );
-						var code  = ret.code
-						var error = huawei4G.errors[ ret.code ];
+						var ret   = getObjectFromXML(data); 
+						var error = huawei4G.errors[ ret.code ];// ['code', 'message'];
 
 						if ( error == undefined){
 							console.log('Server Response: ', data);
@@ -107,35 +107,6 @@ request(options, function (error, response, data) {
     }
 })
 
-
-/* xml to javascript object
- input:
-	<?xml version="1.0" encoding="UTF-8"?>
-	<error>
-		<code>125002</code>
-		<message></message>
-	</error>
-
- output:
- {code: data_1, message: data_2}
-*/
-var getXmlValues = function (xml, arrItems){
-	xml = xml.replace(/(\r\n|\n|\r)/gm,"");
-	//console.log(xml)
-
-	var ret = {}
-
-	for (let idx = 0; idx < arrItems.length; idx++){
-		 let start = xml.indexOf(`<${arrItems[idx]}>`) + `<${arrItems[idx]}>`.length;
-		 let end   = xml.indexOf(`</${arrItems[idx]}>`);
-		 let data = xml.substr(start, end-start);
-
-		 ret[ arrItems[idx] ] = data;
-	}
-
-	return ret;
-}
-
 var getXMLtype = function(xml){
 	xml = xml.replace(/(\r\n|\n|\r)/gm,"");
 	return xml.indexOf('<error>') >-1 ? 'error' : xml.indexOf('<response>')>-1 ? 'response' : 'unknown';
@@ -146,17 +117,17 @@ var getXMLtype = function(xml){
  * into a Javascript key-value pair object 
  */
 var getObjectFromXML = function(xml){
-	xml = xml.replace(/(\r\n|\n|\r)/gm,"");
+	xml = xml.replace(/(\r\n|\n|\r)/gm,"") // remove newlines / carriage returns
+	xml = xml.split(`?>`)[1] // remove: <?xml version="1.0" encoding="UTF-8"?>
 
 	var ret = {}
-
 	let type = xml.indexOf('<error>') >-1 ? 'error' : xml.indexOf('<response>')>-1 ? 'response' : 'unknown';
-	if ( type == 'error'){
-		return undefined;
-	}
 
-	xml = xml.split(`?>`)[1] // remove: <?xml version="1.0" encoding="UTF-8"?>
-	xml = xml.replace(/<response>/gm,"").replace(/<\/response>/gm,"");
+	if ( type == 'error'){
+		xml = xml.replace(/<error>/gm,"").replace(/<\/error>/gm,"");
+	} else {
+		xml = xml.replace(/<response>/gm,"").replace(/<\/response>/gm,"");
+	}
 
 	var arr = xml.split(/\<\/\w+>/gm).filter(function(el){ return el.trim().length }).map(function(el){return el.replace("<","").split(">")});
 

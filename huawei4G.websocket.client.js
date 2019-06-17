@@ -1,11 +1,10 @@
-/* interactive test client */
 let port = 8075;
 var WebSocket = require('ws');
 var ws = new WebSocket(`ws://localhost:${port}`);
 var h4g = require('./huawei4G')
 var huawei4G = new h4g()
 
-let hint = "\nType a route below then press Return. Type 'routes' to list available routes:"
+let hint = "\nType a route below then press Return. Type 'routes' for available routes:"
 
 process.stdin.resume();
 process.stdin.setEncoding('utf8');

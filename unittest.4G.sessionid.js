@@ -4,7 +4,7 @@ var headers = {}
 
 var huawei4G = {
 	routes: { 
-				init:                '', /* no params returns sessionid*/
+				init:                '',
 				user_state_login:    'api/user/state-login',
 				user_logout:         'api/user/logout',
 				get_token:           'api/webserver/token',

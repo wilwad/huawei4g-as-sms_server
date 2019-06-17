@@ -3,7 +3,23 @@ var WebSocket = require('ws');
 var ws = new WebSocket(`ws://localhost:${port}`);
 var h4g = require('./huawei4G')
 var huawei4G = new h4g()
-let route = 'api/monitoring/check-notifications'; // route to get SMS unread count
+let route = 'api/monitoring/check-notifications'; // get SMS unread count
+
+/*  api/sms/sms-count
+{ LocalUnread: '0',
+  LocalInbox: '36',
+  LocalOutbox: '31',
+  LocalDraft: '0',
+  LocalDeleted: '0',
+  SimUnread: '0',
+  SimInbox: '4',
+  SimOutbox: '6',
+  SimDraft: '0',
+  LocalMax: '500',
+  SimMax: '30',
+  SimUsed: '10',
+  NewMsg: '0' }
+*/
 const { spawn } = require('child_process');
 const sound = '/usr/share/sounds/ubuntu/notifications/Amsterdam.ogg'
 const POLL_INTERVAL = 1000*59 // 20 seconds
