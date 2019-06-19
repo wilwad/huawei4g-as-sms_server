@@ -1,21 +1,30 @@
 /*
  * Huawei 4G Router E5186s-22a Reverse-Engineering
- * Unit test: api/sms/send-sms
+ * Unit test: api/sms/sms-count
  * William Sengdara ~ June 2019
  */
 
-// Send an sms by specifying cellphone "Message"
-// Cellphone in local format (no leading + sign)
-if (process.argv.length < 4){
-	console.log('Error: Arguments required -- cellphone "Message"')
+// Set SMS read flag: api/sms/set-read
+// You can specify multiple message indices:
+// node this-script.js 1234 5678 91234
+if (process.argv.length < 3){
+	console.log('Error: Arguments required -- msgIndex')
 	process.exit(1)
 }
 
-let cellphone = process.argv[ 2 ].trim();
-let message   = process.argv[ 3 ].trim();
+let arrIdx = []
 
-if ( ! cellphone.length || !message.length){
-	console.log("Cellphone and message must be specified.")
+for (let idx = 2; idx < process.argv.length; idx++ ){
+	let msgIndex = parseInt( process.argv[ idx ].trim() );
+	if ( msgIndex && arrIdx.indexOf( msgIndex) == -1) {
+		arrIdx.push( msgIndex )
+	} else {
+		console.log(`Ignoring ${msgIndex}. Already specified.`)
+	}
+}
+
+if (! arrIdx.length){
+	console.log("No indices specified to process.")
 	process.exit(1)
 }
 
@@ -30,8 +39,8 @@ let url 	 = 'http://192.168.8.1' // default 4G router IP
 
 var cookie_  = ''
 var csrf_tokens = []
-
 var headers_ = {}
+
 var options = {
     url: url + huawei4G.routes.init,
 	headers: headers_,
@@ -59,6 +68,7 @@ request(options, (error, response, data)=> {
 
 		console.log('****** tokens available *******')
 		console.log(csrf_tokens.join(','))
+
 		var token = csrf_tokens[0]
 		csrf_tokens.splice(0,1) // remove used token
 
@@ -67,11 +77,9 @@ request(options, (error, response, data)=> {
 
 							let token = csrf_tokens[ 0 ]
 							csrf_tokens.splice(0,1) // remove used token
-							send_sms( token, {to:[ cellphone ],
-											  message: message
-											 }, 
-									( obj )=>{	console.log( `SMS (${cellphone}, ${message}) was sent:`,obj )	}, 
-									( err )=>{ console.log(err) })
+							sms_set_read( token, arrIdx, 
+										 (obj)=>{ console.log(`Set to read:`, obj )	}, 
+                                         (err)=>{})
 						}, 
                       function( err){
 						console.log(err)
@@ -79,7 +87,7 @@ request(options, (error, response, data)=> {
     }
 })
 
-/* login to router */
+// login to router
 function login( token, cbSuccess, cbFail ){
 		if (! cookie_.trim().length) {
 			cbFail('We need a cookie')
@@ -155,56 +163,22 @@ function login( token, cbSuccess, cbFail ){
 		});
 }
 
-/*
-  Will give you 2 new csrf_tokens on success to replace all csrf_tokens
-*/
-function send_sms( csrftoken, msg, cbSuccess, cbFail ){
+// set sms read
+function sms_set_read( csrftoken, arrIndex, cbSuccess, cbFail ) {
 		if (! cookie_.trim().length) {
-			console.log('Cookie is required. How did you get here?')
+			cbFail('Cookie is required')
 			return
 		}
 
-		console.log('******* send SMS ********')
+		console.log('******* set_sms_read ********')
+		console.log('using cookie:', cookie_)
+		console.log('using csrf_token:', csrftoken)
 
-		let route = huawei4G.routes.sms_send
+		let route = huawei4G.routes.sms_read
+		var indices = arrIndex.map(el=> `<Index>${el}</Index>`).join("")
+		let xmlStr = `<?xml version="1.0" encoding="UTF-8"?><request>${indices}</request>`
 
-		let scaValue       = "";
-		let g_sms_boxType  = 1;
-		let g_text_mode    = 1;
-		let sms_systemBusy = 113018;
-		var index          = -1;
-
-		function pad(data){ 
-					if (data.toString().length == 2) 
-						return data; 
-					else 
-						return '0'+data; 
-		}
-
-		
-		var dt = new Date();
-
-		var now = dt.getFullYear() + '-' + 
-				  pad(dt.getMonth()) + '-' + 
-                  pad(dt.getDate()) + ' ' + 
-                  pad(dt.getHours()) + ':'+ 
-                  pad(dt.getMinutes()) + ':'+ 
-                  pad(dt.getSeconds());
-
-		var phones_to = msg.to.map(el=> `<Phone>${el}</Phone>`).join("")
-
-		var xmlStr = `<?xml version="1.0" encoding="UTF-8"?>
-						<request>
-						<Index>-1</Index>
-						<Phones>${phones_to}</Phones>
-						<Sca></Sca>
-						<Content>${msg.message}</Content>
-						<Length>${msg.message.length}</Length>
-						<Reserved>${g_text_mode}</Reserved>
-						<Date>${now}</Date>
-					  </request>`
-
-		xmlstr = xmlStr.replace(/(\r\n|\n|\r|\t)/gm,"") 
+		console.log( `${url}/${route}` , xmlStr)
 
 		request({
 			url: `${url}/${route}`,
@@ -212,7 +186,6 @@ function send_sms( csrftoken, msg, cbSuccess, cbFail ){
 			body: xmlStr,
 			headers:{
 						'Cookie' : cookie_ ,
-						'referrer': 'http://192.168.8.1/html/smsinbox.html',
 						'__RequestVerificationToken': csrftoken
 					}
 		}, (error, response, body)=>{
@@ -223,7 +196,7 @@ function send_sms( csrftoken, msg, cbSuccess, cbFail ){
 			console.log(type, obj)
 			console.log(response.headers)
 			console.log('Response.body:',raw);
-
+			
 			// push new verification header
 			if ( response.headers['__requestverificationtoken'] !== undefined){
 				let newtoken = response.headers['__requestverificationtoken'];
@@ -233,10 +206,9 @@ function send_sms( csrftoken, msg, cbSuccess, cbFail ){
 			}
 
 			if ( type == 'error' && obj !== undefined ){
-				console.log('Huawei4G error:', huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
-				cbFail( huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js')
+				cbFail(huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
 				return
-            } 
+            }
 
 			cbSuccess( raw.indexOf('OK') > -1 )
 		});

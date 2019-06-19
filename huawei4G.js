@@ -1,8 +1,15 @@
 /**
- * My own module for Huawei4G
+ * My own module for Huawei4G E5186s-22a
  *
  * William Sengdara ~ June 2019
  */
+
+/*
+	var log = {}
+	log.error = function(d){ console.log(d) }
+	log.debug = log.error
+	log.trace = log.error
+*/
 function huawei4G(){
 		this.login  = {
 					   	user: 'admin',
@@ -38,8 +45,11 @@ function huawei4G(){
 							dhcp_settings:	 	 'api/dhcp/settings',
 							sms_count:			 'api/sms/sms-count', /* GET get the total # of messages available */
 							sms_list:			 'api/sms/sms-list', /* POST get sms list: BoxType, PageIndex, ReadCount */
-							sms_read:			 'api/sms/set-read', /* POST set sms_read: index */
-							sms_send:			 'api/sms/send-sms'
+							sms_read:			 'api/sms/set-read', /* POST set sms_read: <Index>smsId</Index> */
+							sms_delete:			 'api/sms/delete-sms', /* POST delete sms: <Index>smsId</Index> */
+							sms_send:			 'api/sms/send-sms',
+							toggle_data:		 'api/dialup/mobile-dataswitch', /* GET | POST dataswitch:0|1 */
+
 					 }
 
 		this.errors = {

@@ -1,16 +1,18 @@
-let port = 8075
-var request = require('request')
-var XML = require('./xml')
-var h4g = require('./huawei4G')
-var xml = new XML()
-var huawei4G = new h4g()
+/*
+ * Huawei 4G Router E5186s-22a Reverse-Engineering
+ * Unit test: api/sms/sms-list
+ * William Sengdara ~ June 2019
+ */
+let port     	= 8075
+var request  	= require('request')
+var XML      	= require('./xml')
+var h4g      	= require('./huawei4G')
+var xml      	= new XML()
+var huawei4G 	= new h4g()
 
-let url = 'http://192.168.8.1' // default 4G router IP
-
-var requests = []
-var cookie_  = ''
+let url 	 	= 'http://192.168.8.1' // default 4G router IP
+var cookie_  	= ''
 var csrf_tokens = []
-var public_key = {encpubkeyn:'', encpubkeye: ''}
 
 var headers_ = {}
 var options = {
@@ -20,6 +22,11 @@ var options = {
     qs: { }
 }
 
+var contacts = {
+					'131':'MTC Balance'
+				}
+
+/* entry point: get sessionid for all future comms */
 request(options, (error, response, data)=> {
     if (!error && response.statusCode == 200) {
 		cookie_ = response.headers['set-cookie'][0].split(';')[0]
@@ -48,7 +55,7 @@ request(options, (error, response, data)=> {
 
 							let token = csrf_tokens[ 0 ]
 							csrf_tokens.splice(0,1) // remove used token
-							get_sms_list( token, ( obj )=>{	console.log( obj )	}, ()=>{})
+							get_sms_list( token, ( obj )=>{	console.log('Raw message list'); console.log( obj )	}, ()=>{})
 						}, 
                       function( err){
 						console.log(err)
@@ -56,14 +63,12 @@ request(options, (error, response, data)=> {
     }
 })
 
+// login to the router
 function login( token, cbSuccess, cbFail ){
 		if (! cookie_.trim().length) {
-			cbFail('We need a cookie')
+			cbFail(`Cookie required. Does anyone know you're here?`)
 			return
 		}
-
-		console.log('*********** login ***********')
-		console.log('using cookie:', cookie_)
 
 		var obj = {
 			password_type: huawei4G.login.password_type,
@@ -90,17 +95,15 @@ function login( token, cbSuccess, cbFail ){
 			let obj  = xml.objectFromXML(raw) 
 			let loginOK = response.headers['__requestverificationtokenone'] !== undefined
 
-			console.log(type, obj, loginOK )
-
-			if ( type == 'error' && obj !== undefined ){
-				cbFail('Huawei4G error:', huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
-				return
-            }
-
 			if (! loginOK){
 				cbFail('__requestverificationtokenone not in response.headers')
 				return
 			}
+
+			if ( type == 'error' && obj !== undefined ){
+				cbFail(huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
+				return
+            }
 
 			/* After successful login, we receive
 			 *
@@ -117,13 +120,7 @@ function login( token, cbSuccess, cbFail ){
 
 			// replace current cookie_
 			console.log('New SessionID', cookie)
-			cookie_ = cookie
-
-			//console.log('token1:', token1)
-			//console.log('token2:', token2)
-			//console.log('token:', token)
-			//console.log('new cookie:', cookie)
-
+			cookie_     = cookie
 			csrf_tokens = []
 			csrf_tokens.push( token1, token2)
 			console.log('New csrf_tokens', csrf_tokens.join(','))
@@ -132,154 +129,98 @@ function login( token, cbSuccess, cbFail ){
 }
 
 /*
-//get current box(inbox/sendbox/draftbox) sms
-function sms_getBoxData() {
-    g_sms_smsListArray.PageIndex = g_sms_pageIndex;
-    var msgCondition = object2xml("request",g_sms_smsListArray);
-    saveAjaxData('api/sms/sms-list',msgCondition, function($xml) {
-        var ret = xml2object($xml);
-        if (ret.type == "response") {
-            if(ret.response.Messages.Message) {
-                g_finishFlag = 1;
-                g_sms_smsList = new Array();
-                if($.isArray(ret.response.Messages.Message)) {
-                    g_sms_smsList = ret.response.Messages.Message;
-                } else {
-                    g_sms_smsList.push(ret.response.Messages.Message);
-                }
-                sms_initBoxList();
-            } else {
-                // showInfoDialog(common_failed);
-                log.error("SMS: get api/sms/sms-list data error");
-            }
-        } else {
-            // showInfoDialog(common_failed);
-            log.error("SMS: get api/sms/sms-list data error");
-        }
-    }, {
-        errorCB: function() {
-            // showInfoDialog(common_failed);
-            if(g_finishFlag == 0){
-                sms_getBoxData();
-                g_finishFlag = 1;
-            }
-            log.error("SMS: get api/sms/sms-list file failed");
-        }
-    });
-}
+ * Ask the 4G router to give you SMS messages in: 1 Inbox, 2 Sent, 3 Drafts
 */
-
-function get_sms_list( csrftoken ){
+function get_sms_list( csrftoken, cbSuccess, cbFail ){
 		if (! cookie_.trim().length) {
-			console.log('* Cookie monster needs his cookie. Bye')
-			process.exit(1)
+			cbFail('Cookie is required')
 			return
 		}
-
-		console.log('******* get_sms_list ********')
-		console.log('using cookie:', cookie_)
-		console.log('using csrf_token:', csrftoken)
 
 		let route = huawei4G.routes.sms_list
 
-		let obj = { Ascending: 0,
-					BoxType: 2,
-					PageIndex: 1,
-                    ReadCount: 0,
-					SortType: 0,
-                    UnreadPreferred: 0}
+		let filter = { 
+						Ascending: 0,
+						BoxType: huawei4G.sms_box.inbox,
+						PageIndex: 1,
+    	                ReadCount: 20, // how many messages to return
+						SortType: 0,
+    	                UnreadPreferred: 0
+					}
 
-		let xmlStr = `<?xml version="1.0" encoding="UTF-8"?>` +
-						'<request>' + xml.objectToXML( obj ) + '</request>'
-
-		console.log( `${url}/${route}` , xmlStr)
+		let xmlStr = `<?xml version="1.0" encoding="UTF-8"?>
+					 <request>
+						<PageIndex>${filter.PageIndex}</PageIndex>
+						<ReadCount>${filter.ReadCount}</ReadCount>
+						<BoxType>${filter.BoxType}</BoxType>
+						<SortType>${filter.SortType}</SortType>
+						<Ascending>${filter.Ascending}</Ascending>
+						<UnreadPreferred>${filter.UnreadPreferred}</UnreadPreferred>
+					</request>`
 
 		request({
 			url: `${url}/${route}`,
 			method: 'POST',
-			body: xmlStr,
+			body: xmlStr.replace(/(\r\n|\n|\r|\t)/gm,""),
 			headers:{
-				'Cookie' : cookie_ ,
-				'__RequestVerificationToken': csrftoken,
-				'Content-Length': Buffer.byteLength(xmlStr) /*,
-				'Access-Control-Allow-Headers': 'Content-Type, Access-Control-Allow-Origin'*/
-			}
+						'Cookie' : cookie_ ,
+						'__RequestVerificationToken': csrftoken
+					}
 		}, (error, response, body)=>{
 			let raw  = body.replace(/(\n\r|\n|\r|\t)/gm,"")
 			let type = xml.getType(raw)
 			let obj  = xml.objectFromXML(raw) 
 
-			console.log(type, obj)
-			console.log(response.headers)
-			console.log('Response.body:',raw);
+			console.log(type, 'Messages Count:',obj.Count)
 
 			// push new verification header
 			if ( response.headers['__requestverificationtoken'] !== undefined){
 				let newtoken = response.headers['__requestverificationtoken'];
 				console.log(`Got new csrf_token: '${newtoken}'`)
 				csrf_tokens.push( newtoken )
-				console.log(csrf_tokens.join(','))
 			}
 
 			if ( type == 'error' && obj !== undefined ){
-				console.log('Huawei4G error:', huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
-				return
-            }
-		});
-}
-
-// set sms read
-function set_sms_read(smsIndex) {
-		if (! cookie_.trim().length) {
-			console.log('* Cookie monster needs his cookie. Bye')
-			process.exit(1)
-			return
-		}
-
-		console.log('******* set_sms_read ********')
-		console.log('using cookie:', cookie_)
-		console.log('using csrf_token:', csrftoken)
-
-		let route = huawei4G.routes.sms_read
-
-		let obj = { Index: smsIndex }
-
-		let xmlStr = `<?xml version="1.0" encoding="UTF-8"?>` +
-						'<request>' + xml.objectToXML( obj ) + '</request>'
-
-		console.log( `${url}/${route}` , xmlStr)
-
-		request({
-			url: `${url}/${route}`,
-			method: 'POST',
-			body: xmlStr,
-			headers:{
-				'Cookie' : cookie_ ,
-				'__RequestVerificationToken': csrftoken,
-				'Content-Length': Buffer.byteLength(xmlStr) /*,
-				'Access-Control-Allow-Headers': 'Content-Type, Access-Control-Allow-Origin'*/
-			}
-		}, (error, response, body)=>{
-			let raw  = body.replace(/(\n\r|\n|\r|\t)/gm,"")
-			let type = xml.getType(raw)
-			let obj  = xml.objectFromXML(raw) 
-
-			console.log(type, obj)
-			console.log(response.headers)
-			console.log('Response.body:',raw);
-			
-			// push new verification header
-			if ( response.headers['__requestverificationtoken'] !== undefined){
-				let newtoken = response.headers['__requestverificationtoken'];
-				console.log(`Got new csrf_token: '${newtoken}'`)
-				csrf_tokens.push( newtoken )
-				console.log(csrf_tokens.join(','))
-			}
-
-			if ( type == 'error' && obj !== undefined ){
-				console.log('Huawei4G error:', huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
+				cbFail( huawei4G.errors[ obj.code ] || 'Error not defined in huawei4G.js' )
 				return
             }
 
+			var messages = raw.split(`"utf-8"?>`)[1]
+							.replace(/<response>/g,"").replace(/<\/response>/g,"")
+							.split("</Count>")[1] 
+							.replace("<Messages>","").replace(/<\/Messages>/g,"")
+							.split(/\<\/\Message>/gm).filter(el=>el.substr(0, '<Message>'.length)=='<Message>' )
+
+			var msgs = [];
+
+			messages.forEach((el,idx)=>{
+				var n    = el.replace("<Message>","")
+				var temp = n.split(/\<\/\w+>/gm).filter(el=>el.trim().length>0)
+				var obj  = {}
+
+				temp.forEach(el=>{
+					var t    =  el.split('>')
+					var key  = t[0].replace('<','')
+					var data = t[1]
+								.replace(/&apos;/gm,"'")
+								.replace(/&#x2F;/gm,":")
+								.replace(/&#41;/gm,")")
+
+					obj[ key ] = data
+				})
+
+				msgs.push(obj)
+			})
+
+			for(var idx = 0; idx < msgs.length; idx++){
+				let idy = idx+1
+				let msg = msgs[idx]
+				let contact = contacts[ msg.Phone ] || msg.Phone
+				let read = msg.Smstat == 0 ? 'unread' : 'read'
+				let message = msg.Content.length > 80 ? msg.Content.substr(0,80) + '...' : msg.Content
+				console.log(`${idy} ${msg.Index} ${read} ${msg.Date} -- ${contact} -- ${message}`)
+			}
+
+			cbSuccess( msgs )
 		});
 }
