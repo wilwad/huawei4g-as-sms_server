@@ -11,9 +11,11 @@
 	log.trace = log.error
 */
 function huawei4G(){
+		this.router_ip = 'http://192.168.8.1'
+	
 		this.login  = {
 					   	user: 'admin',
-					    password: 'Admin.2018!',
+					    password: 'set_your_password',
 						password_type: '4'
 					  }
 
