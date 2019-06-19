@@ -35,6 +35,9 @@ E.g. api/wlan/basic-settings, would return:
 To get you started, included are tests
 
 unittest.request.sms_get_list.js -- Get list of text messages
+
 unittest.request.sms_send.js -- Send an sms
+
 unittest.request.sms_set_read.js -- Set sms status to read
+
 unittest.request.sms_delete.js -- Delete an sms
