@@ -1,5 +1,5 @@
 # huawei4g-as-sms_server
-Use a Huawei 4G E5186s-22a router as an SMS Server using Node
+Use a Huawei 4G E5186s-22a router as an SMS Server using NodeJS
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/s-l640.jpg)
 
@@ -15,6 +15,7 @@ Here are the notable REST routes used by the router
 
 You can send an SMS from your application (e.g. bash). Get a list of received messages and auto respond on keywords.
 
+
 # Let's get started
 
 huawei4G.js -- set the router url (default 192.168.8.1), user and password
@@ -22,7 +23,11 @@ huawei4G.websocket.server.js -- node huawei4G.websocket.server.js to start the t
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/server.png)
 
-huawei4G.websocket.client.interval.js -- node huawei4G.websocket.client.interval.js to start a WebSocket test client that sends api/sms/sms-count to the WebSocket server to get total number of messages read (and a list of new messages if there are any).
+huawei4G.websocket.client.interval.js
+```
+node huawei4G.websocket.client.interval.js
+```
+This WebSocket test client sends api/sms/sms-count every so many milliseconds to the WebSocket server to get the total number of messages read (and a list of new messages if there are any).
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/websocket-interval-get-sms-unreadcount.png)
 
@@ -34,21 +39,22 @@ to start the test WebSocket client. Type routes to get a list of the REST routes
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/websocket-client-routes.png)
 
+
 # To get you started, included are tests
 
 Get list of text messages
 ```
-unittest.request.sms_get_list.js 
+node unittest.request.sms_get_list.js 
 ```
 Send an sms
 ```
-unittest.request.sms_send.js 
+node unittest.request.sms_send.js cellphone "Long message"
 ```
 Set sms status to read
 ```
-unittest.request.sms_set_read.js 
+node unittest.request.sms_set_read.js smsIndex0 [smsIndex1, smsIndex-n]
 ```
 Delete an sms
 ```
-unittest.request.sms_delete.js
+node unittest.request.sms_delete.js smsIndex0 [smsIndex1, smsIndex-n]
 ```
