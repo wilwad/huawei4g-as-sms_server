@@ -1,4 +1,4 @@
-# huawei4g-as-sms_server
+# huawei4G WIFI router as an SMS server
 Use a Huawei 4G E5186s-22a router as an SMS Server using NodeJS
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/s-l640.jpg)
@@ -19,7 +19,11 @@ You can send an SMS from your application (e.g. bash). Get a list of received me
 # Let's get started
 
 huawei4G.js -- set the router url (default 192.168.8.1), user and password
-huawei4G.websocket.server.js -- node huawei4G.websocket.server.js to start the test WebSocket Server
+huawei4G.websocket.server.js 
+```
+node huawei4G.websocket.server.js 
+```
+to start the test WebSocket Server
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/server.png)
 
