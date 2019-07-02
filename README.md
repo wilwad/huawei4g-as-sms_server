@@ -49,7 +49,7 @@ to start the test WebSocket client. Type routes to get a list of the REST routes
 
 Get list of text messages
 ```
-node unittest.request.sms_get_list.js 
+node unittest.request.sms_get_list.js [box:1|2|3 [total]]
 ```
 Send an sms
 ```
@@ -62,4 +62,8 @@ node unittest.request.sms_set_read.js smsIndex0 [smsIndex1, smsIndex-n]
 Delete an sms
 ```
 node unittest.request.sms_delete.js smsIndex0 [smsIndex1, smsIndex-n]
+```
+Write SMS list to MySQL and delete off the device
+```
+node unittest.request.sms_get_list_mysql.js [box:1|2|3 [total]]
 ```
