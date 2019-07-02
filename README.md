@@ -32,7 +32,7 @@ huawei4G.websocket.client.interval.js
 ```
 node huawei4G.websocket.client.interval.js
 ```
-This WebSocket test client sends api/sms/sms-count every so many milliseconds to the WebSocket server to get the total number of messages read (and a list of new messages if there are any).
+This WebSocket test client sends "api/sms/sms-count" every so many milliseconds to the WebSocket server to get the total number of messages read (and a list of new messages if there are any).
 
 ![Interface](https://github.com/wilwad/huawei4g-as-sms_server/blob/master/websocket-interval-get-sms-unreadcount.png)
 
