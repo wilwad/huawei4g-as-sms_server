@@ -18,7 +18,8 @@ You can send an SMS from your application (e.g. bash). Get a list of received me
 
 # Let's get started
 
-huawei4G.js -- set the router url (default 192.168.8.1), user and password
+huawei4G.js -- set the router url (default 192.168.8.1), user and password.
+
 huawei4G.websocket.server.js 
 ```
 node huawei4G.websocket.server.js 
